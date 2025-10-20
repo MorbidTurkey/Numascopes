@@ -1,6 +1,14 @@
-# AI-Powered Astrology Platform
+# 🌟 Numascopes - AI-Powered Astrology Platform
 
-A comprehensive web application that provides accurate, real-time astrological calculations with AI-powered personalized horoscopes. Built with precision astronomical data from Swiss Ephemeris and enhanced with intelligent content generation.
+A sophisticated astrology application featuring natal chart generation, daily horoscopes, cosmic events tracking, and AI-powered astrological insights through Numa AI chat. Built with Swiss Ephemeris astronomical accuracy and enhanced with intelligent content generation.
+
+## 🔐 Security & Deployment
+
+**IMPORTANT**: Before deploying to GitHub or production, read `SECURITY_GUIDE.md` for comprehensive security instructions including:
+- Environment variable configuration
+- Database security best practices
+- API key management
+- Production deployment checklist
 
 ## Features
 
