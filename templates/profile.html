@@ -1,0 +1,548 @@
+{% extends "base.html" %}
+
+{% block title %}Profile Setup - Turkey Palm Readings{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Progress Indicator -->
+        {% if not current_user.has_complete_birth_info() %}
+        <div class="card border-warning mb-4">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-star text-warning" style="font-size: 2rem;"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h5 class="mb-1">Complete Your Astrological Profile</h5>
+                        <p class="mb-1">Add your birth information to unlock personalized horoscopes, charts, and AI guidance from Numa.</p>
+                        <div class="progress mt-2" style="height: 8px;">
+                            <div class="progress-bar bg-warning" role="progressbar" style="width: {% if current_user.birth_date %}60{% elif current_user.email %}20{% else %}0{% endif %}%"></div>
+                        </div>
+                        <small class="text-muted mt-1">
+                            {% if current_user.birth_date %}60% complete - Add location info to finish{% elif current_user.email %}20% complete - Add birth date and time{% else %}0% complete - Let's get started!{% endif %}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Current Information Summary -->
+        {% if current_user.birth_date or current_user.birth_city %}
+        <div class="card mb-4 border-success">
+            <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="fas fa-check-circle text-success me-2"></i>Current Information</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% if current_user.birth_date %}
+                    <div class="col-md-6">
+                        <strong>Birth Date:</strong> {{ current_user.birth_date.strftime('%B %d, %Y') }}
+                    </div>
+                    {% endif %}
+                    {% if current_user.birth_time %}
+                    <div class="col-md-6">
+                        <strong>Birth Time:</strong> {{ current_user.birth_time.strftime('%I:%M %p') }}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="row mt-2">
+                    {% if current_user.birth_city %}
+                    <div class="col-md-6">
+                        <strong>Birth Location:</strong> {{ current_user.birth_city }}{% if current_user.birth_region %}, {{ current_user.birth_region }}{% endif %}{% if current_user.birth_country %}, {{ current_user.birth_country }}{% endif %}
+                    </div>
+                    {% endif %}
+                    {% if current_user.latitude and current_user.longitude %}
+                    <div class="col-md-6">
+                        <strong>Coordinates:</strong> {{ "%.4f"|format(current_user.latitude) }}, {{ "%.4f"|format(current_user.longitude) }}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="row mt-2">
+                    {% if current_user.timezone %}
+                    <div class="col-md-6">
+                        <strong>Birth Timezone:</strong> {{ current_user.timezone }}
+                    </div>
+                    {% endif %}
+                    {% if current_user.current_timezone %}
+                    <div class="col-md-6">
+                        <strong>Current Timezone:</strong> {{ current_user.current_timezone }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% if current_user.current_city %}
+                <div class="row mt-2">
+                    <div class="col-md-6">
+                        <strong>Current Location:</strong> {{ current_user.current_city }}{% if current_user.current_region %}, {{ current_user.current_region }}{% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Personal Information Panel -->
+        <div class="card mb-4">
+            <div class="card-header" id="personalInfoHeader">
+                <h5 class="mb-0">
+                    <button class="btn btn-link d-flex align-items-center justify-content-between w-100 text-decoration-none" 
+                            type="button" data-bs-toggle="collapse" data-bs-target="#personalInfoCollapse" 
+                            aria-expanded="true" aria-controls="personalInfoCollapse">
+                        <span><i class="fas fa-user-edit me-2"></i> Personal Information</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                </h5>
+            </div>
+            <div id="personalInfoCollapse" class="collapse show" aria-labelledby="personalInfoHeader">
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('update_birth_info') }}" id="personalInfoForm">
+                        {{ form.hidden_tag() }}
+                        
+                        <!-- Birth Date and Time Section -->
+                        <div class="mb-4">
+                            <h6 class="text-primary mb-3"><i class="fas fa-calendar-alt"></i> Birth Date & Time</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        {{ form.birth_date.label(class="form-label") }} <span class="text-danger">*</span>
+                                        {{ form.birth_date(class="form-control" + (" is-invalid" if form.birth_date.errors else "")) }}
+                                        {% if form.birth_date.errors %}
+                                            <div class="invalid-feedback">
+                                                {% for error in form.birth_date.errors %}
+                                                    <div>{{ error }}</div>
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                        <div class="form-text">Required for accurate astrological calculations</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Birth Time</label>
+                                        
+                                        <div class="form-check mb-2">
+                                            {{ form.birth_time_unknown(class="form-check-input") }}
+                                            {{ form.birth_time_unknown.label(class="form-check-label") }}
+                                        </div>
+                                        
+                                        <div id="birth-time-fields">
+                                            <div class="row g-2">
+                                                <div class="col-4">
+                                                    <input type="number" name="birth_time_hour" id="birth_time_hour" class="form-control form-control-sm" 
+                                                           placeholder="Hour" min="1" max="12" value="{{ form.birth_time_hour.data or '' }}">
+                                                </div>
+                                                <div class="col-4">
+                                                    <input type="number" name="birth_time_minute" id="birth_time_minute" class="form-control form-control-sm" 
+                                                           placeholder="Min" min="0" max="59" value="{{ form.birth_time_minute.data or '' }}">
+                                                </div>
+                                                <div class="col-4">
+                                                    {{ form.birth_time_ampm(class="form-select form-select-sm") }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Hidden original field for form submission -->
+                                        {{ form.birth_time(style="display: none;") }}
+                                        
+                                        <div class="form-text">Birth time improves accuracy for rising sign and house placements</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Birth Location Section with Autocomplete -->
+                        <div class="mb-4">
+                            <h6 class="text-primary mb-3"><i class="fas fa-map-marker-alt"></i> Birth Location</h6>
+                            <div class="alert alert-info">
+                                <small>
+                                    <strong>Why location matters:</strong> Your birth location determines house placements and rising sign, 
+                                    which are essential for accurate chart interpretation.
+                                </small>
+                            </div>
+                            
+                            <!-- Location Search Input -->
+                            <div class="mb-3 position-relative">
+                                <label for="birth-location-search" class="form-label">Search Birth Location <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="birth-location-search" 
+                                       placeholder="Start typing city name..." autocomplete="off">
+                                <div id="birth-location-suggestions" class="list-group position-absolute w-100" style="z-index: 1000; display: none;"></div>
+                                <div class="form-text">Type your birth city and select from suggestions</div>
+                            </div>
+                            
+                            <!-- Hidden fields that will be auto-filled -->
+                            {{ form.birth_country(style="display: none;") }}
+                            {{ form.birth_region(style="display: none;") }}
+                            {{ form.birth_city(style="display: none;") }}
+                            {{ form.timezone(style="display: none;") }}
+                            
+                            <!-- Display selected location -->
+                            <div id="birth-location-display" class="alert alert-success" style="display: none;">
+                                <strong>Selected Birth Location:</strong> <span id="birth-location-text"></span>
+                                <button type="button" class="btn btn-sm btn-outline-secondary ms-2" onclick="clearBirthLocation()">Change</button>
+                            </div>
+                        </div>
+
+                        <!-- Current Location Section with Autocomplete -->
+                        <div class="mb-4">
+                            <h6 class="text-primary mb-3"><i class="fas fa-home"></i> Current Location</h6>
+                            <div class="alert alert-info">
+                                <small>
+                                    <strong>For daily readings:</strong> Your current location helps provide more accurate timing for transits and local astronomical events.
+                                </small>
+                            </div>
+                            
+                            <!-- Current Location Search Input -->
+                            <div class="mb-3 position-relative">
+                                <label for="current-location-search" class="form-label">Search Current Location</label>
+                                <input type="text" class="form-control" id="current-location-search" 
+                                       placeholder="Start typing current city name..." autocomplete="off">
+                                <div id="current-location-suggestions" class="list-group position-absolute w-100" style="z-index: 1000; display: none;"></div>
+                                <div class="form-text">Type your current city and select from suggestions (optional)</div>
+                            </div>
+                            
+                            <!-- Display selected current location -->
+                            <div id="current-location-display" class="alert alert-success" style="display: none;">
+                                <strong>Current Location:</strong> <span id="current-location-text"></span>
+                                <button type="button" class="btn btn-sm btn-outline-secondary ms-2" onclick="clearCurrentLocation()">Change</button>
+                            </div>
+                            
+                            <!-- Hidden fields for current location -->
+                            <input type="hidden" id="current_country" name="current_country">
+                            <input type="hidden" id="current_region" name="current_region">
+                            <input type="hidden" id="current_city" name="current_city">
+                            <input type="hidden" id="current_timezone" name="current_timezone">
+                        </div>
+
+                        <!-- Astrology System Preference -->
+                        <div class="mb-4">
+                            <h6 class="text-primary mb-3"><i class="fas fa-star"></i> Astrology System</h6>
+                            <div class="mb-3">
+                                {{ form.astrology_system.label(class="form-label") }}
+                                {{ form.astrology_system(class="form-select") }}
+                                <div class="form-text">Choose your preferred astrological system</div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Section -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-save"></i> Save Personal Information
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preferences Panel -->
+        <div class="card mb-4">
+            <div class="card-header" id="preferencesHeader">
+                <h5 class="mb-0">
+                    <button class="btn btn-link d-flex align-items-center justify-content-between w-100 text-decoration-none" 
+                            type="button" data-bs-toggle="collapse" data-bs-target="#preferencesCollapse" 
+                            aria-expanded="false" aria-controls="preferencesCollapse">
+                        <span><i class="fas fa-cog me-2"></i> Preferences</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                </h5>
+            </div>
+            <div id="preferencesCollapse" class="collapse" aria-labelledby="preferencesHeader">
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('update_preferences') }}" id="preferencesForm">
+                        {{ preferences_form.hidden_tag() }}
+                        
+                        <!-- Theme Preferences -->
+                        <div class="mb-4">
+                            <h6 class="text-primary mb-3"><i class="fas fa-palette"></i> Appearance</h6>
+                            <div class="mb-3">
+                                {{ preferences_form.theme_preference.label(class="form-label") }}
+                                {{ preferences_form.theme_preference(class="form-select") }}
+                                <div class="form-text">Choose your preferred theme or let it follow your system setting</div>
+                            </div>
+                        </div>
+
+                        <!-- Email Notifications -->
+                        <div class="mb-4">
+                            <h6 class="text-primary mb-3"><i class="fas fa-envelope"></i> Email Notifications</h6>
+                            <div class="form-check mb-2">
+                                {{ preferences_form.email_notifications(class="form-check-input") }}
+                                {{ preferences_form.email_notifications.label(class="form-check-label") }}
+                            </div>
+                        </div>
+
+                        <!-- Submit Section -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-secondary btn-lg">
+                                <i class="fas fa-save"></i> Save Preferences
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    
+    <!-- Right sidebar with quick info -->
+    <div class="col-lg-4">
+        {% if recent_readings %}
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-history"></i> Recent Readings</h5>
+            </div>
+            <div class="card-body">
+                {% for reading in recent_readings %}
+                <div class="mb-2">
+                    <small class="text-muted">{{ reading.created_at.strftime('%b %d, %Y') }}</small><br>
+                    <a href="{{ url_for('view_reading', reading_id=reading.id) }}" class="text-decoration-none">
+                        {{ reading.reading_type.title() }} Reading
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if quick_chart %}
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-pie"></i> Your Chart Preview</h5>
+            </div>
+            <div class="card-body text-center">
+                <div class="chart-preview mb-3">
+                    {% if chart_preview %}
+                        <img src="{{ chart_preview }}" class="img-fluid" alt="Chart Preview" style="max-width: 300px;">
+                    {% else %}
+                        <div class="placeholder-chart bg-light rounded d-flex align-items-center justify-content-center" style="height: 200px;">
+                            <i class="fas fa-chart-pie fa-3x text-muted"></i>
+                        </div>
+                    {% endif %}
+                </div>
+                <a href="{{ url_for('natal_chart') }}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-eye"></i> View Full Chart
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Birth time unknown toggle
+document.getElementById('birth_time_unknown').addEventListener('change', function() {
+    const timeFields = document.getElementById('birth-time-fields');
+    if (this.checked) {
+        timeFields.style.display = 'none';
+    } else {
+        timeFields.style.display = 'block';
+    }
+});
+
+// Location autocomplete functionality
+let birthLocationTimeout;
+let currentLocationTimeout;
+
+// Birth location search
+document.getElementById('birth-location-search').addEventListener('input', function() {
+    const query = this.value;
+    clearTimeout(birthLocationTimeout);
+    
+    if (query.length < 3) {
+        document.getElementById('birth-location-suggestions').style.display = 'none';
+        return;
+    }
+    
+    birthLocationTimeout = setTimeout(() => {
+        searchLocation(query, 'birth');
+    }, 300);
+});
+
+// Current location search
+document.getElementById('current-location-search').addEventListener('input', function() {
+    const query = this.value;
+    clearTimeout(currentLocationTimeout);
+    
+    if (query.length < 3) {
+        document.getElementById('current-location-suggestions').style.display = 'none';
+        return;
+    }
+    
+    currentLocationTimeout = setTimeout(() => {
+        searchLocation(query, 'current');
+    }, 300);
+});
+
+async function searchLocation(query, type) {
+    try {
+        // Using Nominatim (OpenStreetMap) geocoding service
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(query)}&addressdetails=1`);
+        const data = await response.json();
+        
+        const suggestionsId = type === 'birth' ? 'birth-location-suggestions' : 'current-location-suggestions';
+        const suggestionsDiv = document.getElementById(suggestionsId);
+        
+        suggestionsDiv.innerHTML = '';
+        
+        if (data.length > 0) {
+            data.forEach(location => {
+                const address = location.address || {};
+                const city = address.city || address.town || address.village || address.hamlet || '';
+                const state = address.state || address.region || '';
+                const country = address.country || '';
+                
+                if (city && country) {
+                    const suggestion = document.createElement('a');
+                    suggestion.className = 'list-group-item list-group-item-action';
+                    suggestion.href = '#';
+                    
+                    let displayText = city;
+                    if (state) displayText += `, ${state}`;
+                    displayText += `, ${country}`;
+                    
+                    suggestion.textContent = displayText;
+                    suggestion.onclick = (e) => {
+                        e.preventDefault();
+                        selectLocation(type, {
+                            city: city,
+                            region: state,
+                            country: country,
+                            lat: location.lat,
+                            lon: location.lon,
+                            display: displayText
+                        });
+                    };
+                    
+                    suggestionsDiv.appendChild(suggestion);
+                }
+            });
+            
+            suggestionsDiv.style.display = 'block';
+        } else {
+            suggestionsDiv.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Error searching location:', error);
+    }
+}
+
+function selectLocation(type, locationData) {
+    if (type === 'birth') {
+        // Fill birth location fields
+        document.getElementById('birth_city').value = locationData.city;
+        document.getElementById('birth_region').value = locationData.region || '';
+        document.getElementById('birth_country').value = locationData.country;
+        
+        // Auto-detect timezone (simplified - you might want to use a timezone API)
+        const timezone = getTimezoneFromCoordinates(locationData.lat, locationData.lon);
+        document.getElementById('timezone').value = timezone;
+        
+        // Update display
+        document.getElementById('birth-location-text').textContent = locationData.display;
+        document.getElementById('birth-location-display').style.display = 'block';
+        document.getElementById('birth-location-search').style.display = 'none';
+        document.getElementById('birth-location-suggestions').style.display = 'none';
+    } else {
+        // Fill current location fields
+        document.getElementById('current_city').value = locationData.city;
+        document.getElementById('current_region').value = locationData.region || '';
+        document.getElementById('current_country').value = locationData.country;
+        
+        const timezone = getTimezoneFromCoordinates(locationData.lat, locationData.lon);
+        document.getElementById('current_timezone').value = timezone;
+        
+        // Update display
+        document.getElementById('current-location-text').textContent = locationData.display;
+        document.getElementById('current-location-display').style.display = 'block';
+        document.getElementById('current-location-search').style.display = 'none';
+        document.getElementById('current-location-suggestions').style.display = 'none';
+    }
+}
+
+function clearBirthLocation() {
+    document.getElementById('birth_city').value = '';
+    document.getElementById('birth_region').value = '';
+    document.getElementById('birth_country').value = '';
+    document.getElementById('timezone').value = '';
+    document.getElementById('birth-location-search').value = '';
+    document.getElementById('birth-location-display').style.display = 'none';
+    document.getElementById('birth-location-search').style.display = 'block';
+}
+
+function clearCurrentLocation() {
+    document.getElementById('current_city').value = '';
+    document.getElementById('current_region').value = '';
+    document.getElementById('current_country').value = '';
+    document.getElementById('current_timezone').value = '';
+    document.getElementById('current-location-search').value = '';
+    document.getElementById('current-location-display').style.display = 'none';
+    document.getElementById('current-location-search').style.display = 'block';
+}
+
+// Simplified timezone detection based on coordinates
+function getTimezoneFromCoordinates(lat, lon) {
+    // This is a very basic timezone estimation
+    // For production, consider using a proper timezone API like Google Timezone API
+    const longitude = parseFloat(lon);
+    
+    // Rough timezone calculation (UTC offset = longitude / 15)
+    let utcOffset = Math.round(longitude / 15);
+    
+    // Clamp to valid range
+    utcOffset = Math.max(-12, Math.min(12, utcOffset));
+    
+    if (utcOffset === 0) {
+        return 'UTC';
+    } else if (utcOffset > 0) {
+        return `UTC+${utcOffset}`;
+    } else {
+        return `UTC${utcOffset}`;
+    }
+}
+
+// Hide suggestions when clicking outside
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('#birth-location-search') && !e.target.closest('#birth-location-suggestions')) {
+        document.getElementById('birth-location-suggestions').style.display = 'none';
+    }
+    if (!e.target.closest('#current-location-search') && !e.target.closest('#current-location-suggestions')) {
+        document.getElementById('current-location-suggestions').style.display = 'none';
+    }
+});
+
+// Show existing data on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if birth location is already filled
+    const birthCity = document.getElementById('birth_city').value;
+    const birthRegion = document.getElementById('birth_region').value;
+    const birthCountry = document.getElementById('birth_country').value;
+    
+    if (birthCity && birthCountry) {
+        let display = birthCity;
+        if (birthRegion) display += `, ${birthRegion}`;
+        display += `, ${birthCountry}`;
+        
+        document.getElementById('birth-location-text').textContent = display;
+        document.getElementById('birth-location-display').style.display = 'block';
+        document.getElementById('birth-location-search').style.display = 'none';
+    }
+    
+    // Check if current location is already filled
+    const currentCity = document.getElementById('current_city').value;
+    const currentCountry = document.getElementById('current_country').value;
+    
+    if (currentCity && currentCountry) {
+        const currentRegion = document.getElementById('current_region').value;
+        let display = currentCity;
+        if (currentRegion) display += `, ${currentRegion}`;
+        display += `, ${currentCountry}`;
+        
+        document.getElementById('current-location-text').textContent = display;
+        document.getElementById('current-location-display').style.display = 'block';
+        document.getElementById('current-location-search').style.display = 'none';
+    }
+});
+</script>
+{% endblock %}

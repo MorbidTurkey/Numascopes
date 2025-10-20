@@ -1,0 +1,341 @@
+{% extends "base.html" %}
+
+{% block title %}Ask Numa - Your Astrology Chat{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Header Section -->
+            <div class="text-center mb-4">
+                <h2><i class="fas fa-comments text-primary"></i> Ask Numa</h2>
+                <p class="text-muted fs-5">Your chart companion — helping you reflect, plan, and find balance using your stars.</p>
+            </div>
+
+            <!-- Context Card -->
+            {% if user_context %}
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <i class="fas fa-sun text-warning"></i>
+                            <small class="d-block">Sun in {{ user_context.sun_sign }}</small>
+                        </div>
+                        <div class="col-md-3">
+                            <i class="fas fa-moon text-info"></i>
+                            <small class="d-block">Moon in {{ user_context.moon_sign }}</small>
+                        </div>
+                        <div class="col-md-3">
+                            <i class="fas fa-leaf text-success"></i>
+                            <small class="d-block">{{ user_context.season }}</small>
+                        </div>
+                        <div class="col-md-3">
+                            <i class="fas fa-star text-primary"></i>
+                            <small class="d-block">{{ user_context.main_transit }}</small>
+                        </div>
+                    </div>
+                    <hr class="my-3">
+                    <p class="text-center mb-0 small">
+                        Ask about your chart, your day, or anything on your mind — Numa will use your astrology to offer perspective, not prediction.
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Chat Container -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-robot text-primary"></i> Chat with Numa</h5>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="clearChat()">
+                        <i class="fas fa-trash"></i> Clear
+                    </button>
+                </div>
+                
+                <!-- Chat Messages -->
+                <div class="card-body" id="chatContainer" style="height: 400px; overflow-y: auto;">
+                    <div id="chatMessages">
+                        <!-- Welcome Message -->
+                        <div class="message numa-message mb-3">
+                            <div class="d-flex">
+                                <div class="avatar me-3">
+                                    <i class="fas fa-robot text-primary"></i>
+                                </div>
+                                <div class="message-content">
+                                    <strong>Numa</strong>
+                                    <p class="mb-0 mt-1">Hello! I'm here to help you explore your astrological energies and find clarity. What's on your mind today?</p>
+                                    <small class="text-muted">Just now</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Topics -->
+                <div class="card-body border-top">
+                    <small class="text-muted d-block mb-2">Quick topics:</small>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button class="btn btn-sm btn-outline-primary" onclick="sendQuickMessage('How can I make the most of today?')">
+                            How can I make the most of today?
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary" onclick="sendQuickMessage('Is this a good time to speak up at work?')">
+                            Is this a good time to speak up at work?
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary" onclick="sendQuickMessage('Why do I feel emotionally heavy this week?')">
+                            Why do I feel emotionally heavy this week?
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary" onclick="sendQuickMessage('How can I plan for a confident week ahead?')">
+                            How can I plan for a confident week ahead?
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Input Area -->
+                <div class="card-footer">
+                    <div class="input-group">
+                        <input type="text" 
+                               class="form-control" 
+                               id="messageInput" 
+                               placeholder="Ask Numa about your energy, timing, or next steps..."
+                               onkeypress="handleKeyPress(event)">
+                        <button class="btn btn-primary" onclick="sendMessage()">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle"></i>
+                            Numa's insights are for reflection and self-awareness, not predictions or instructions.
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.message {
+    padding: 10px 0;
+}
+
+.numa-message .avatar {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.user-message .avatar {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.message-content {
+    flex: 1;
+}
+
+.user-message {
+    flex-direction: row-reverse;
+}
+
+.user-message .message-content {
+    text-align: right;
+}
+
+.user-message .avatar {
+    margin-left: 1rem;
+    margin-right: 0;
+}
+
+#chatContainer {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+}
+
+.loading-dots {
+    display: inline-block;
+}
+
+.loading-dots::after {
+    content: '';
+    animation: dots 2s linear infinite;
+}
+
+/* Numa response formatting */
+.numa-message .message-content p {
+    line-height: 1.6;
+}
+
+.numa-message .message-content p br {
+    line-height: 2;
+}
+
+@keyframes dots {
+    0%, 20% { content: ''; }
+    40% { content: '.'; }
+    60% { content: '..'; }
+    80%, 100% { content: '...'; }
+}
+</style>
+
+<script>
+let isLoading = false;
+
+function sendMessage() {
+    const input = document.getElementById('messageInput');
+    const message = input.value.trim();
+    
+    if (message && !isLoading) {
+        addUserMessage(message);
+        input.value = '';
+        sendToNuma(message);
+    }
+}
+
+function sendQuickMessage(message) {
+    if (!isLoading) {
+        addUserMessage(message);
+        sendToNuma(message);
+    }
+}
+
+function addUserMessage(message) {
+    const chatMessages = document.getElementById('chatMessages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message user-message mb-3';
+    messageDiv.innerHTML = `
+        <div class="d-flex">
+            <div class="avatar me-3">
+                <i class="fas fa-user"></i>
+            </div>
+            <div class="message-content">
+                <strong>You</strong>
+                <p class="mb-0 mt-1">${message}</p>
+                <small class="text-muted">Just now</small>
+            </div>
+        </div>
+    `;
+    chatMessages.appendChild(messageDiv);
+    scrollToBottom();
+}
+
+function addNumaMessage(message) {
+    const chatMessages = document.getElementById('chatMessages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message numa-message mb-3';
+    messageDiv.innerHTML = `
+        <div class="d-flex">
+            <div class="avatar me-3">
+                <i class="fas fa-robot"></i>
+            </div>
+            <div class="message-content">
+                <strong>Numa</strong>
+                <p class="mb-0 mt-1">${message}</p>
+                <small class="text-muted">Just now</small>
+            </div>
+        </div>
+    `;
+    chatMessages.appendChild(messageDiv);
+    scrollToBottom();
+}
+
+function addLoadingMessage() {
+    const chatMessages = document.getElementById('chatMessages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message numa-message mb-3';
+    messageDiv.id = 'loadingMessage';
+    messageDiv.innerHTML = `
+        <div class="d-flex">
+            <div class="avatar me-3">
+                <i class="fas fa-robot"></i>
+            </div>
+            <div class="message-content">
+                <strong>Numa</strong>
+                <p class="mb-0 mt-1 text-muted">
+                    <span class="loading-dots">Reflecting on your question</span>
+                </p>
+            </div>
+        </div>
+    `;
+    chatMessages.appendChild(messageDiv);
+    scrollToBottom();
+}
+
+function removeLoadingMessage() {
+    const loadingMessage = document.getElementById('loadingMessage');
+    if (loadingMessage) {
+        loadingMessage.remove();
+    }
+}
+
+function sendToNuma(message) {
+    isLoading = true;
+    addLoadingMessage();
+    
+    fetch('/chat_numa', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: message })
+    })
+    .then(response => response.json())
+    .then(data => {
+        removeLoadingMessage();
+        addNumaMessage(data.response);
+        isLoading = false;
+    })
+    .catch(error => {
+        removeLoadingMessage();
+        addNumaMessage("I'm having trouble connecting right now. Please try again in a moment.");
+        isLoading = false;
+        console.error('Error:', error);
+    });
+}
+
+function clearChat() {
+    if (confirm('Are you sure you want to clear the chat?')) {
+        const chatMessages = document.getElementById('chatMessages');
+        chatMessages.innerHTML = `
+            <div class="message numa-message mb-3">
+                <div class="d-flex">
+                    <div class="avatar me-3">
+                        <i class="fas fa-robot text-primary"></i>
+                    </div>
+                    <div class="message-content">
+                        <strong>Numa</strong>
+                        <p class="mb-0 mt-1">Hello! I'm here to help you explore your astrological energies and find clarity. What's on your mind today?</p>
+                        <small class="text-muted">Just now</small>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+}
+
+function scrollToBottom() {
+    const chatContainer = document.getElementById('chatContainer');
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+
+function handleKeyPress(event) {
+    if (event.key === 'Enter') {
+        sendMessage();
+    }
+}
+
+// Auto-focus input on page load
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('messageInput').focus();
+});
+</script>
+{% endblock %}

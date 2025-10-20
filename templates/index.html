@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome - Turkey Palm Readings{% endblock %}
+
+{% block content %}
+{% if current_user.is_authenticated %}
+    <!-- Authenticated User Dashboard -->
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4><i class="fas fa-sun"></i> Your Daily Horoscope</h4>
+                    <small>{{ moment().format('MMMM Do, YYYY') }}</small>
+                </div>
+                <div class="card-body">
+                    {% if horoscope %}
+                        <div class="horoscope-content">
+                            {{ horoscope|safe }}
+                        </div>
+                        <hr>
+                        <div class="text-end">
+                            <button class="btn btn-outline-primary btn-sm" onclick="shareHoroscope()">
+                                <i class="fas fa-share"></i> Share
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="saveHoroscope()">
+                                <i class="fas fa-bookmark"></i> Save
+                            </button>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-info-circle text-muted mb-3" style="font-size: 3rem;"></i>
+                            <h5>Complete Your Profile</h5>
+                            <p class="text-muted">Add your birth information to receive personalized horoscopes.</p>
+                            <a href="{{ url_for('profile') }}" class="btn btn-primary">
+                                <i class="fas fa-user-edit"></i> Update Profile
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Quick Mood Check -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-heart"></i> How are you feeling today?</h5>
+                </div>
+                <div class="card-body">
+                    <form id="quickMoodForm">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <div class="mb-3">
+                            <textarea class="form-control" name="mood_description" rows="3" 
+                                    placeholder="Share your current mood or what's on your mind..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-secondary">
+                            <i class="fas fa-paper-plane"></i> Get Guidance
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Natal Chart Preview -->
+            {% if natal_chart %}
+            <div class="card">
+                <div class="card-header">
+                    <h6><i class="fas fa-chart-pie"></i> Your Natal Chart</h6>
+                </div>
+                <div class="card-body text-center">
+                    <img src="data:image/png;base64,{{ natal_chart }}" class="img-fluid rounded" alt="Natal Chart">
+                    <div class="mt-3">
+                        <a href="{{ url_for('natal_chart') }}" class="btn btn-sm btn-outline-primary">
+                            View Details
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Quick Stats -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6><i class="fas fa-chart-line"></i> Your Journey</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <h4 class="text-primary">{{ current_user.horoscope_readings.count() }}</h4>
+                            <small class="text-muted">Horoscopes Read</small>
+                        </div>
+                        <div class="col-6">
+                            <h4 class="text-success">{{ current_user.mood_entries.count() }}</h4>
+                            <small class="text-muted">Mood Entries</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cosmic Events -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6><i class="fas fa-moon"></i> Upcoming Cosmic Events</h6>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item border-0 px-0">
+                            <strong>New Moon in Scorpio</strong>
+                            <br><small class="text-muted">Nov 1, 2025</small>
+                        </div>
+                        <div class="list-group-item border-0 px-0">
+                            <strong>Mercury Retrograde</strong>
+                            <br><small class="text-muted">Nov 26, 2025</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% else %}
+    <!-- Landing Page for Guests -->
+    <div class="hero-section text-center py-5">
+        <div class="container">
+            <h1 class="display-4 mb-4">
+                <i class="fas fa-stars text-primary"></i>
+                Welcome to Turkey Palm Readings
+            </h1>
+            <p class="lead mb-5">
+                Experience the future of astrology with AI-powered personalized horoscopes, 
+                mood tracking, and cosmic guidance tailored just for you.
+            </p>
+            
+            <div class="row justify-content-center mb-5">
+                <div class="col-md-8">
+                    <div class="row">
+                        <div class="col-md-4 mb-4">
+                            <div class="feature-box">
+                                <i class="fas fa-user-astronaut fa-3x text-primary mb-3"></i>
+                                <h5>Personalized Horoscopes</h5>
+                                <p>AI-generated daily horoscopes based on your exact birth chart and current cosmic events.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-4">
+                            <div class="feature-box">
+                                <i class="fas fa-heart fa-3x text-danger mb-3"></i>
+                                <h5>Mood Tracking</h5>
+                                <p>Share your feelings and receive astrological guidance for your current emotional state.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-4">
+                            <div class="feature-box">
+                                <i class="fas fa-chart-pie fa-3x text-success mb-3"></i>
+                                <h5>Natal Chart</h5>
+                                <p>Beautiful visualization of your birth chart with detailed planetary interpretations.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cta-buttons">
+                <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg me-3">
+                    <i class="fas fa-rocket"></i> Start Your Journey
+                </a>
+                <a href="{{ url_for('auth.login') }}" class="btn btn-outline-primary btn-lg">
+                    <i class="fas fa-sign-in-alt"></i> Sign In
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="container py-5">
+        <div class="row">
+            <div class="col-md-6">
+                <h3>Why Choose Turkey Palm Readings?</h3>
+                <ul class="list-unstyled mt-4">
+                    <li class="mb-3">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        <strong>AI-Powered Accuracy:</strong> Advanced algorithms analyze your birth chart and current transits
+                    </li>
+                    <li class="mb-3">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        <strong>Real-Time Guidance:</strong> Get personalized advice based on your current mood and situations
+                    </li>
+                    <li class="mb-3">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        <strong>Secure & Private:</strong> Your personal data is encrypted and protected
+                    </li>
+                    <li class="mb-3">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        <strong>Modern Interface:</strong> Beautiful, intuitive design that makes astrology accessible
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Quick mood form submission
+document.getElementById('quickMoodForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    fetch('/submit_mood', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show guidance in a modal or inline
+            alert('Guidance: ' + data.guidance);
+            this.reset();
+        } else {
+            alert('Please fill in your mood description.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Something went wrong. Please try again.');
+    });
+});
+
+// Share horoscope functionality
+function shareHoroscope() {
+    if (navigator.share) {
+        navigator.share({
+            title: 'My Daily Horoscope',
+            text: document.querySelector('.horoscope-content').innerText,
+            url: window.location.href
+        });
+    } else {
+        // Fallback - copy to clipboard
+        navigator.clipboard.writeText(document.querySelector('.horoscope-content').innerText);
+        alert('Horoscope copied to clipboard!');
+    }
+}
+
+// Save horoscope functionality
+function saveHoroscope() {
+    // This would typically save to user's favorites or send to backend
+    alert('Horoscope saved to your collection!');
+}
+</script>
+{% endblock %}

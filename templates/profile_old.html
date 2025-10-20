@@ -1,0 +1,587 @@
+{% extends "base.html" %}
+
+{% block title %}Profile Setup - Turkey Palm Readings{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Progress Indicator -->
+        {% if not current_user.has_complete_birth_info() %}
+        <div class="card border-warning mb-4">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-star text-warning" style="font-size: 2rem;"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h5 class="mb-1">Complete Your Astrological Profile</h5>
+                        <p class="mb-1">Add your birth information to unlock personalized horoscopes, charts, and AI guidance from Numa.</p>
+                        <div class="progress mt-2" style="height: 8px;">
+                            <div class="progress-bar bg-warning" role="progressbar" style="width: {% if current_user.birth_date %}60{% elif current_user.email %}20{% else %}0{% endif %}%"></div>
+                        </div>
+                        <small class="text-muted mt-1">
+                            {% if current_user.birth_date %}60% complete - Add location info to finish{% elif current_user.email %}20% complete - Add birth date and time{% else %}0% complete - Let's get started!{% endif %}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Personal Information Panel -->
+        <div class="card mb-4">
+            <div class="card-header" id="personalInfoHeader">
+                <h5 class="mb-0">
+                    <button class="btn btn-link d-flex align-items-center justify-content-between w-100 text-decoration-none" 
+                            type="button" data-bs-toggle="collapse" data-bs-target="#personalInfoCollapse" 
+                            aria-expanded="true" aria-controls="personalInfoCollapse">
+                        <span><i class="fas fa-user-edit me-2"></i> Personal Information</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                </h5>
+            </div>
+            <div id="personalInfoCollapse" class="collapse show" aria-labelledby="personalInfoHeader">
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('update_birth_info') }}" id="personalInfoForm">
+                        {{ form.hidden_tag() }}
+                        
+                        <!-- Birth Date and Time Section -->
+                        <div class="mb-4">
+                            <h6 class="text-primary mb-3"><i class="fas fa-calendar-alt"></i> Birth Date & Time</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        {{ form.birth_date.label(class="form-label") }} <span class="text-danger">*</span>
+                                        {{ form.birth_date(class="form-control" + (" is-invalid" if form.birth_date.errors else "")) }}
+                                        {% if form.birth_date.errors %}
+                                            <div class="invalid-feedback">
+                                                {% for error in form.birth_date.errors %}
+                                                    <div>{{ error }}</div>
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <div class="form-check mb-2">
+                                            {{ form.birth_time_unknown(class="form-check-input") }}
+                                            {{ form.birth_time_unknown.label(class="form-check-label") }}
+                                        </div>
+                                        
+                                        <div id="birth-time-fields">
+                                            {{ form.birth_time.label(class="form-label") }}
+                                            <div class="row g-2">
+                                                <div class="col-4">
+                                                    {{ form.birth_time_hour(class="form-select form-select-sm", placeholder="Hour") }}
+                                                </div>
+                                                <div class="col-4">
+                                                    {{ form.birth_time_minute(class="form-select form-select-sm", placeholder="Min") }}
+                                                </div>
+                                                <div class="col-4">
+                                                    {{ form.birth_time_ampm(class="form-select form-select-sm") }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Hidden original field for form submission -->
+                                        {{ form.birth_time(style="display: none;") }}
+                                        
+                                        <div class="form-text">Birth time improves accuracy for rising sign and house placements</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Birth Location Section -->
+                        <div class="mb-4">
+                            <h6 class="text-primary mb-3"><i class="fas fa-map-marker-alt"></i> Birth Location</h6>
+                            <div class="alert alert-info">
+                                <small>
+                                    <strong>Why location matters:</strong> Your birth location determines house placements and rising sign, 
+                                    which are essential for accurate chart interpretation.
+                                </small>
+                            </div>
+                            
+                            <!-- Location Search Input -->
+                            <div class="mb-3">
+                                <label for="birth-location-search" class="form-label">Search Birth Location</label>
+                                <input type="text" class="form-control" id="birth-location-search" 
+                                       placeholder="Start typing city name..." autocomplete="off">
+                                <div id="birth-location-suggestions" class="list-group position-absolute w-100" style="z-index: 1000; display: none;"></div>
+                                <div class="form-text">Type your birth city and select from suggestions</div>
+                            </div>
+                            
+                            <!-- Hidden fields that will be auto-filled -->
+                            {{ form.birth_country(style="display: none;") }}
+                            {{ form.birth_region(style="display: none;") }}
+                            {{ form.birth_city(style="display: none;") }}
+                            {{ form.timezone(style="display: none;") }}
+                            
+                            <!-- Display selected location -->
+                            <div id="birth-location-display" class="alert alert-success" style="display: none;">
+                                <strong>Selected:</strong> <span id="birth-location-text"></span>
+                                <button type="button" class="btn btn-sm btn-outline-secondary ms-2" onclick="clearBirthLocation()">Change</button>
+                            </div>
+                        </div>
+
+                        <!-- Current Location Section -->
+                        <div class="mb-4">
+                            <h6 class="text-primary mb-3"><i class="fas fa-home"></i> Current Location</h6>
+                            <div class="alert alert-info">
+                                <small>
+                                    <strong>For daily readings:</strong> Your current location helps provide more accurate timing for transits and local astronomical events.
+                                </small>
+                            </div>
+                            
+                            <!-- Current Location Search Input -->
+                            <div class="mb-3">
+                                <label for="current-location-search" class="form-label">Search Current Location</label>
+                                <input type="text" class="form-control" id="current-location-search" 
+                                       placeholder="Start typing current city name..." autocomplete="off">
+                                <div id="current-location-suggestions" class="list-group position-absolute w-100" style="z-index: 1000; display: none;"></div>
+                                <div class="form-text">Type your current city and select from suggestions</div>
+                            </div>
+                            
+                            <!-- Display selected current location -->
+                            <div id="current-location-display" class="alert alert-success" style="display: none;">
+                                <strong>Current:</strong> <span id="current-location-text"></span>
+                                <button type="button" class="btn btn-sm btn-outline-secondary ms-2" onclick="clearCurrentLocation()">Change</button>
+                            </div>
+                        </div>
+
+                        <!-- Submit Section -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-save"></i> Save Personal Information
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preferences Panel -->
+        <div class="card mb-4">
+            <div class="card-header" id="preferencesHeader">
+                <h5 class="mb-0">
+                    <button class="btn btn-link d-flex align-items-center justify-content-between w-100 text-decoration-none" 
+                            type="button" data-bs-toggle="collapse" data-bs-target="#preferencesCollapse" 
+                            aria-expanded="false" aria-controls="preferencesCollapse">
+                        <span><i class="fas fa-cog me-2"></i> Preferences</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                </h5>
+            </div>
+            <div id="preferencesCollapse" class="collapse" aria-labelledby="preferencesHeader">
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('update_preferences') }}" id="preferencesForm">
+                        {{ preferences_form.hidden_tag() }}
+                        
+                        <!-- Theme Preferences -->
+                        <div class="mb-4">
+                            <h6 class="text-primary mb-3"><i class="fas fa-palette"></i> Appearance</h6>
+                            <div class="mb-3">
+                                {{ preferences_form.theme_preference.label(class="form-label") }}
+                                {{ preferences_form.theme_preference(class="form-select") }}
+                                <div class="form-text">Choose your preferred theme or let it follow your system setting</div>
+                            </div>
+                        </div>
+
+                        <!-- Email Notifications -->
+                        <div class="mb-4">
+                            <h6 class="text-primary mb-3"><i class="fas fa-envelope"></i> Email Notifications</h6>
+                            <div class="form-check mb-2">
+                                {{ preferences_form.email_notifications(class="form-check-input") }}
+                                {{ preferences_form.email_notifications.label(class="form-check-label") }}
+                            </div>
+                        </div>
+
+                        <!-- Submit Section -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-secondary btn-lg">
+                                <i class="fas fa-save"></i> Save Preferences
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+                                            {% for error in form.birth_date.errors %}
+                                                <div>{{ error }}</div>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">Required for accurate astrological calculations</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Birth Time</label>
+                                    
+                                    <!-- Option to not know birth time -->
+                                    <div class="mb-2">
+                                        {{ form.birth_time_unknown(class="form-check-input") }}
+                                        <label class="form-check-label ms-2" for="{{ form.birth_time_unknown.id }}">
+                                            {{ form.birth_time_unknown.label.text }}
+                                        </label>
+                                    </div>
+                                    
+                                    <!-- Time selectors (hidden when "don't know" is checked) -->
+                                    <div id="timeSelectors">
+                                        <div class="row g-2">
+                                            <div class="col-4">
+                                                {{ form.birth_time_hour(class="form-select form-select-sm") }}
+                                            </div>
+                                            <div class="col-4">
+                                                {{ form.birth_time_minute(class="form-select form-select-sm") }}
+                                            </div>
+                                            <div class="col-4">
+                                                {{ form.birth_time_ampm(class="form-select form-select-sm") }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Hidden original field for form submission -->
+                                    {{ form.birth_time(style="display: none;") }}
+                                    
+                                    <div class="form-text">Birth time improves accuracy for rising sign and house placements</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Birth Location Section -->
+                    <div class="mb-4">
+                        <h6 class="text-muted mb-3"><i class="fas fa-map-marker-alt"></i> Birth Location</h6>
+                        <div class="alert alert-info">
+                            <small>
+                                <strong>Why location matters:</strong> Your birth location determines house placements and rising sign, 
+                                which are essential for accurate chart interpretation.
+                            </small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.birth_country.label(class="form-label") }} <span class="text-danger">*</span>
+                            {{ form.birth_country(class="form-select" + (" is-invalid" if form.birth_country.errors else "")) }}
+                            {% if form.birth_country.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.birth_country.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">Select the country where you were born</div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.birth_region.label(class="form-label") }}
+                                    {{ form.birth_region(class="form-control" + (" is-invalid" if form.birth_region.errors else "")) }}
+                                    {% if form.birth_region.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.birth_region.errors %}
+                                                <div>{{ error }}</div>
+                                        {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">State, province, or region (if applicable)</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.birth_city.label(class="form-label") }} <span class="text-danger">*</span>
+                                    {{ form.birth_city(class="form-control" + (" is-invalid" if form.birth_city.errors else "")) }}
+                                    {% if form.birth_city.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.birth_city.errors %}
+                                                <div>{{ error }}</div>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">The city where you were born</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Preferences Section -->
+                    <div class="mb-4">
+                        <h6 class="text-muted mb-3"><i class="fas fa-cog"></i> Preferences</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.timezone.label(class="form-label") }}
+                                    {{ form.timezone(class="form-select" + (" is-invalid" if form.timezone.errors else "")) }}
+                                    {% if form.timezone.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.timezone.errors %}
+                                                <div>{{ error }}</div>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">Your birth timezone (auto-detected from location)</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.astrology_system.label(class="form-label") }}
+                                    {{ form.astrology_system(class="form-select") }}
+                                    <div class="form-text">Choose your preferred astrological system</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                {{ form.email_notifications(class="form-check-input") }}
+                                {{ form.email_notifications.label(class="form-check-label") }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Section -->
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-save"></i> Save Birth Information
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- User Preferences Section -->
+        <div class="card mt-4">
+            <div class="card-header bg-secondary text-white">
+                <h4><i class="fas fa-cog"></i> Preferences</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('update_preferences') }}">
+                    {{ preferences_form.hidden_tag() }}
+                    
+                    <!-- Theme Preferences -->
+                    <div class="mb-4">
+                        <h6 class="text-muted mb-3"><i class="fas fa-palette"></i> Appearance</h6>
+                        <div class="mb-3">
+                            {{ preferences_form.theme_preference.label(class="form-label") }}
+                            {{ preferences_form.theme_preference(class="form-select") }}
+                            <div class="form-text">Choose your preferred theme or let it follow your system setting</div>
+                        </div>
+                    </div>
+
+                    <!-- Email Notifications -->
+                    <div class="mb-4">
+                        <h6 class="text-muted mb-3"><i class="fas fa-envelope"></i> Email Notifications</h6>
+                        <div class="form-check mb-2">
+                            {{ preferences_form.email_notifications(class="form-check-input") }}
+                            {{ preferences_form.email_notifications.label(class="form-check-label") }}
+                        </div>
+                    </div>
+
+                    <!-- Current Location Settings -->
+                    <div class="mb-4">
+                        <h6 class="text-muted mb-3"><i class="fas fa-map-marker-alt"></i> Current Location</h6>
+                        <div class="alert alert-info">
+                            <small>
+                                <strong>Location Usage:</strong><br>
+                                • <strong>Houses & Rising Sign:</strong> Require your current location<br>
+                                • <strong>Planetary Positions & Aspects:</strong> Only need timezone<br>
+                                Leave blank to use timezone-only features.
+                            </small>
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            {{ preferences_form.use_current_location(class="form-check-input") }}
+                            {{ preferences_form.use_current_location.label(class="form-check-label") }}
+                        </div>
+                        
+                        <div id="current-location-fields">
+                            <!-- Country Selection -->
+                            <div class="mb-3">
+                                {{ preferences_form.current_country.label(class="form-label") }}
+                                {{ preferences_form.current_country(class="form-select") }}
+                                <div class="form-text">Select the country where you currently live</div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        {{ preferences_form.current_region.label(class="form-label") }}
+                                        {{ preferences_form.current_region(class="form-control") }}
+                                        <div class="form-text">State, province, or region (if applicable)</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        {{ preferences_form.current_city.label(class="form-label") }}
+                                        {{ preferences_form.current_city(class="form-control") }}
+                                        <div class="form-text">Your current city</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                {{ preferences_form.current_timezone.label(class="form-label") }}
+                                {{ preferences_form.current_timezone(class="form-select") }}
+                                <div class="form-text">Your current timezone with UTC offset</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        {{ preferences_form.submit(class="btn btn-success") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Profile Summary -->
+        <div class="card">
+            <div class="card-header">
+                <h6><i class="fas fa-user"></i> Profile Summary</h6>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    <div class="avatar-placeholder bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px; font-size: 2rem;">
+                        {{ current_user.first_name[0] }}{{ current_user.last_name[0] }}
+                    </div>
+                    <h5 class="mt-2">{{ current_user.get_full_name() }}</h5>
+                    <p class="text-muted">{{ current_user.email }}</p>
+                </div>
+
+                {% if current_user.birth_date %}
+                    <div class="profile-info">
+                        <div class="row mb-2">
+                            <div class="col-4"><strong>Born:</strong></div>
+                            <div class="col-8">{{ current_user.birth_date.strftime('%B %d, %Y') }}</div>
+                        </div>
+                        {% if current_user.birth_time %}
+                        <div class="row mb-2">
+                            <div class="col-4"><strong>Time:</strong></div>
+                            <div class="col-8">{{ current_user.birth_time.strftime('%I:%M %p') }}</div>
+                        </div>
+                        {% endif %}
+                        {% if current_user.birth_city or current_user.birth_location %}
+                        <div class="row mb-2">
+                            <div class="col-4"><strong>Location:</strong></div>
+                            <div class="col-8">{{ current_user.get_full_birth_location() }}</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-3">
+                        <i class="fas fa-info-circle text-muted mb-2" style="font-size: 2rem;"></i>
+                        <p class="text-muted">Complete your birth information to get personalized horoscopes and charts.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Privacy Notice -->
+        <div class="card mt-3 border-info">
+            <div class="card-body">
+                <h6 class="card-title text-info">
+                    <i class="fas fa-shield-alt"></i> Privacy & Security
+                </h6>
+                <p class="card-text small">
+                    Your birth information is encrypted and securely stored. 
+                    This data is used solely to generate your personalized astrological insights.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Set max date to today for birth date input
+document.addEventListener('DOMContentLoaded', function() {
+    const birthDateInput = document.querySelector('input[name="birth_date"]');
+    if (birthDateInput) {
+        const today = new Date().toISOString().split('T')[0];
+        birthDateInput.max = today;
+    }
+    
+    // Handle birth time selectors
+    const unknownCheckbox = document.querySelector('input[name="birth_time_unknown"]');
+    const timeSelectors = document.getElementById('timeSelectors');
+    const hourSelect = document.querySelector('select[name="birth_time_hour"]');
+    const minuteSelect = document.querySelector('select[name="birth_time_minute"]');
+    const ampmSelect = document.querySelector('select[name="birth_time_ampm"]');
+    const hiddenTimeInput = document.querySelector('input[name="birth_time"]');
+    
+    function toggleTimeSelectors() {
+        if (unknownCheckbox.checked) {
+            timeSelectors.style.opacity = '0.5';
+            timeSelectors.style.pointerEvents = 'none';
+            // Set default time to 12:00 PM
+            hiddenTimeInput.value = '12:00:00';
+        } else {
+            timeSelectors.style.opacity = '1';
+            timeSelectors.style.pointerEvents = 'auto';
+            updateHiddenTimeField();
+        }
+    }
+    
+    function updateHiddenTimeField() {
+        if (unknownCheckbox.checked) return;
+        
+        const hour = hourSelect.value;
+        const minute = minuteSelect.value || '00';
+        const ampm = ampmSelect.value;
+        
+        if (hour && ampm) {
+            let hour24 = parseInt(hour);
+            if (ampm === 'PM' && hour24 !== 12) {
+                hour24 += 12;
+            } else if (ampm === 'AM' && hour24 === 12) {
+                hour24 = 0;
+            }
+            
+            const timeString = String(hour24).padStart(2, '0') + ':' + minute + ':00';
+            hiddenTimeInput.value = timeString;
+        }
+    }
+    
+    // Set up event listeners
+    unknownCheckbox.addEventListener('change', toggleTimeSelectors);
+    hourSelect.addEventListener('change', updateHiddenTimeField);
+    minuteSelect.addEventListener('change', updateHiddenTimeField);
+    ampmSelect.addEventListener('change', updateHiddenTimeField);
+    
+    // Initialize
+    toggleTimeSelectors();
+    
+    // Current location toggle functionality
+    const useCurrentLocationCheckbox = document.querySelector('input[name="use_current_location"]');
+    const currentLocationFields = document.getElementById('current-location-fields');
+    
+    function toggleCurrentLocationFields() {
+        if (useCurrentLocationCheckbox && currentLocationFields) {
+            if (useCurrentLocationCheckbox.checked) {
+                currentLocationFields.style.display = 'block';
+                currentLocationFields.style.opacity = '1';
+            } else {
+                currentLocationFields.style.opacity = '0.5';
+                // Don't hide completely, just make it less prominent to show it's optional
+            }
+        }
+    }
+    
+    // Set up current location toggle
+    if (useCurrentLocationCheckbox) {
+        useCurrentLocationCheckbox.addEventListener('change', toggleCurrentLocationFields);
+        toggleCurrentLocationFields(); // Initialize
+    }
+});
+</script>
+{% endblock %}

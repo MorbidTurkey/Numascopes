@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Astrology Platform</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            color: #333;
+            margin: 0;
+            font-size: 2.5em;
+        }
+        
+        .header p {
+            color: #666;
+            margin: 10px 0 0 0;
+            font-size: 1.1em;
+        }
+        
+        .birth-form {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .form-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .generate-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            width: 100%;
+            margin-top: 15px;
+        }
+        
+        .generate-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .generate-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .chart-container {
+            text-align: center;
+            margin-top: 30px;
+        }
+        
+        .chart-wrapper {
+            display: inline-block;
+            position: relative;
+            margin: 20px;
+            background: #fff;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        
+        .chart-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .chart-svg {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .error-message {
+            background: #ff4757;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: none;
+        }
+        
+        .success-message {
+            background: #2ed573;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: none;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-size: 1.1em;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .planet-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: left;
+        }
+        
+        .planet-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .planet-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .planet-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .planet-details {
+            color: #666;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>✨ Modern Astrology Platform</h1>
+            <p>Generate beautiful, interactive natal charts with professional accuracy</p>
+        </div>
+        
+        <div class="birth-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="birthDate">Birth Date</label>
+                    <input type="date" id="birthDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="birthTime">Birth Time</label>
+                    <input type="time" id="birthTime" required>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="latitude">Latitude</label>
+                    <input type="number" id="latitude" step="any" placeholder="e.g. 40.7128" required>
+                </div>
+                <div class="form-group">
+                    <label for="longitude">Longitude</label>
+                    <input type="number" id="longitude" step="any" placeholder="e.g. -74.0060" required>
+                </div>
+                <div class="form-group">
+                    <label for="city">City (optional)</label>
+                    <input type="text" id="city" placeholder="e.g. New York">
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="houseSystem">House System</label>
+                    <select id="houseSystem">
+                        <option value="placidus">Placidus</option>
+                        <option value="koch">Koch</option>
+                        <option value="whole-sign">Whole Sign</option>
+                        <option value="equal-house">Equal House</option>
+                        <option value="campanus">Campanus</option>
+                        <option value="regiomontanus">Regiomontanus</option>
+                        <option value="topocentric">Topocentric</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="zodiac">Zodiac System</label>
+                    <select id="zodiac">
+                        <option value="tropical">Tropical</option>
+                        <option value="sidereal">Sidereal</option>
+                    </select>
+                </div>
+            </div>
+            
+            <button class="generate-btn" onclick="generateChart()">
+                Generate Natal Chart
+            </button>
+        </div>
+        
+        <div class="error-message" id="errorMessage"></div>
+        <div class="success-message" id="successMessage"></div>
+        
+        <div class="chart-container" id="chartContainer" style="display: none;">
+            <div class="chart-wrapper">
+                <div class="chart-title">Natal Chart</div>
+                <div id="natalChart"></div>
+            </div>
+        </div>
+        
+        <div class="planet-info" id="planetInfo" style="display: none;">
+            <h3>Planet Positions</h3>
+            <div class="planet-list" id="planetList"></div>
+        </div>
+    </div>
+
+    <!-- Include the JavaScript libraries -->
+    <script src="https://unpkg.com/circular-natal-horoscope-js@latest/dist/index.js"></script>
+    <script src="https://unpkg.com/@astrodraw/astrochart@latest/dist/astrochart.min.js"></script>
+    
+    <script>
+        // Set default values
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set default date to today
+            const today = new Date();
+            document.getElementById('birthDate').value = today.toISOString().split('T')[0];
+            
+            // Set default time to current time
+            const now = new Date();
+            const timeString = now.toTimeString().slice(0,5);
+            document.getElementById('birthTime').value = timeString;
+            
+            // Set default location (Wichita, KS - from your backup data)
+            document.getElementById('latitude').value = 37.6922361;
+            document.getElementById('longitude').value = -97.3375448;
+            document.getElementById('city').value = 'Wichita, KS';
+        });
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            document.getElementById('successMessage').style.display = 'none';
+        }
+        
+        function showSuccess(message) {
+            const successDiv = document.getElementById('successMessage');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+            document.getElementById('errorMessage').style.display = 'none';
+        }
+        
+        function showLoading() {
+            const container = document.getElementById('chartContainer');
+            container.style.display = 'block';
+            container.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Calculating planetary positions...</p>
+                </div>
+            `;
+        }
+        
+        function generateChart() {
+            try {
+                // Hide previous messages
+                document.getElementById('errorMessage').style.display = 'none';
+                document.getElementById('successMessage').style.display = 'none';
+                
+                // Get form values
+                const birthDate = document.getElementById('birthDate').value;
+                const birthTime = document.getElementById('birthTime').value;
+                const latitude = parseFloat(document.getElementById('latitude').value);
+                const longitude = parseFloat(document.getElementById('longitude').value);
+                const city = document.getElementById('city').value;
+                const houseSystem = document.getElementById('houseSystem').value;
+                const zodiac = document.getElementById('zodiac').value;
+                
+                // Validate inputs
+                if (!birthDate || !birthTime || isNaN(latitude) || isNaN(longitude)) {
+                    showError('Please fill in all required fields with valid values.');
+                    return;
+                }
+                
+                if (latitude < -90 || latitude > 90) {
+                    showError('Latitude must be between -90 and 90 degrees.');
+                    return;
+                }
+                
+                if (longitude < -180 || longitude > 180) {
+                    showError('Longitude must be between -180 and 180 degrees.');
+                    return;
+                }
+                
+                showLoading();
+                
+                // Parse date and time
+                const dateTime = new Date(`${birthDate}T${birthTime}`);
+                
+                // Create origin for CircularNatalHoroscopeJS
+                const origin = new Origin({
+                    year: dateTime.getFullYear(),
+                    month: dateTime.getMonth(), // 0-based month
+                    date: dateTime.getDate(),
+                    hour: dateTime.getHours(),
+                    minute: dateTime.getMinutes(),
+                    latitude: latitude,
+                    longitude: longitude
+                });
+                
+                // Generate horoscope
+                const horoscope = new Horoscope({
+                    origin: origin,
+                    houseSystem: houseSystem,
+                    zodiac: zodiac,
+                    aspectPoints: ['bodies', 'points', 'angles'],
+                    aspectWithPoints: ['bodies', 'points', 'angles'],
+                    aspectTypes: ['major', 'minor'],
+                    customOrbs: {},
+                    language: 'en'
+                });
+                
+                // Convert data for AstroChart
+                const chartData = convertToAstroChartFormat(horoscope);
+                
+                // Render chart
+                renderChart(chartData);
+                
+                // Display planet information
+                displayPlanetInfo(horoscope);
+                
+                showSuccess(`Natal chart generated successfully! Location: ${city || `${latitude}, ${longitude}`}`);
+                
+            } catch (error) {
+                console.error('Chart generation error:', error);
+                showError(`Error generating chart: ${error.message}`);
+                document.getElementById('chartContainer').style.display = 'none';
+                document.getElementById('planetInfo').style.display = 'none';
+            }
+        }
+        
+        function convertToAstroChartFormat(horoscope) {
+            const planets = {};
+            const cusps = [];
+            
+            // Convert planets
+            const celestialBodies = horoscope.CelestialBodies;
+            if (celestialBodies && celestialBodies.all) {
+                celestialBodies.all.forEach(body => {
+                    if (body.key && body.ChartPosition && body.ChartPosition.Ecliptic) {
+                        planets[body.key] = [body.ChartPosition.Ecliptic.DecimalDegrees];
+                    }
+                });
+            }
+            
+            // Convert house cusps
+            const houses = horoscope.Houses;
+            if (houses && Array.isArray(houses)) {
+                houses.forEach(house => {
+                    if (house.ChartPosition && house.ChartPosition.Ecliptic) {
+                        cusps.push(house.ChartPosition.Ecliptic.DecimalDegrees);
+                    }
+                });
+            }
+            
+            return {
+                planets: planets,
+                cusps: cusps
+            };
+        }
+        
+        function renderChart(data) {
+            // Clear previous chart
+            const chartDiv = document.getElementById('natalChart');
+            chartDiv.innerHTML = '';
+            
+            // Create chart container with proper ID
+            const chartContainer = document.createElement('div');
+            chartContainer.id = 'astrochart-canvas';
+            chartDiv.appendChild(chartContainer);
+            
+            // Configure chart settings
+            const settings = {
+                CHART_STROKE: 2,
+                CHART_BACKGROUND_COLOR: '#ffffff',
+                CHART_STROKE_COLOR: '#333333',
+                SYMBOL_SCALE: 1.2,
+                MARGIN: 50
+            };
+            
+            // Create and render chart
+            const chart = new astrology.Chart('astrochart-canvas', 600, 600, settings);
+            chart.radix(data);
+            
+            // Show chart container
+            document.getElementById('chartContainer').style.display = 'block';
+        }
+        
+        function displayPlanetInfo(horoscope) {
+            const planetList = document.getElementById('planetList');
+            planetList.innerHTML = '';
+            
+            if (horoscope.CelestialBodies && horoscope.CelestialBodies.all) {
+                horoscope.CelestialBodies.all.forEach(body => {
+                    const planetDiv = document.createElement('div');
+                    planetDiv.className = 'planet-item';
+                    
+                    const name = body.label || body.key || 'Unknown';
+                    const sign = body.Sign ? body.Sign.label : 'Unknown';
+                    const degree = body.ChartPosition ? 
+                        body.ChartPosition.Ecliptic.ArcDegreesFormatted30 : 'Unknown';
+                    const house = body.House ? body.House.id : 'Unknown';
+                    
+                    planetDiv.innerHTML = `
+                        <div class="planet-name">${name}</div>
+                        <div class="planet-details">
+                            ${sign} ${degree}<br>
+                            House ${house}
+                            ${body.isRetrograde ? ' (Retrograde)' : ''}
+                        </div>
+                    `;
+                    
+                    planetList.appendChild(planetDiv);
+                });
+            }
+            
+            document.getElementById('planetInfo').style.display = 'block';
+        }
+    </script>
+</body>
+</html>

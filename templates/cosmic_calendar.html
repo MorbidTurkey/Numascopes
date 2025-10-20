@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Cosmic Calendar - Turkey Palm Readings{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-gradient text-white">
+                    <h3><i class="fas fa-calendar-alt"></i> Cosmic Calendar</h3>
+                    <p class="mb-0">Upcoming astrological events and celestial influences</p>
+                </div>
+                <div class="card-body">
+                    <div class="cosmic-events-full">
+                        {% for event in events %}
+                        <div class="event-card mb-4">
+                            <div class="row align-items-center">
+                                <div class="col-auto">
+                                    <div class="event-icon-large">
+                                        <i class="{{ event.icon }} fa-2x
+                                        {% if event.type == 'new_moon' %}text-warning
+                                        {% elif event.type == 'full_moon' %}text-info  
+                                        {% elif event.type == 'retrograde' %}text-primary
+                                        {% elif event.type == 'solstice' %}text-secondary
+                                        {% else %}text-muted{% endif %}"></i>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <h5 class="mb-1">{{ event.title }}</h5>
+                                    <p class="text-muted mb-1">
+                                        <i class="fas fa-calendar-day"></i> {{ event.date }}
+                                    </p>
+                                    <p class="mb-0">{{ event.description }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% if not loop.last %}
+                        <hr class="my-3">
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <a href="{{ url_for('index') }}" class="btn btn-primary">
+                            <i class="fas fa-arrow-left"></i> Back to Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.bg-gradient {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.event-card {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid #e2e8f0;
+    transition: box-shadow 0.3s ease;
+}
+
+.event-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.event-icon-large {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+}
+
+.cosmic-events-full {
+    max-height: none;
+}
+</style>
+{% endblock %}

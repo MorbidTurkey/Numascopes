@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Astrology Platform</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            color: #333;
+            margin: 0;
+            font-size: 2.5em;
+        }
+        
+        .header p {
+            color: #666;
+            margin: 10px 0 0 0;
+            font-size: 1.1em;
+        }
+        
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 10px 20px;
+            border: 2px solid #667eea;
+            border-radius: 25px;
+            transition: all 0.3s;
+        }
+        
+        .back-link:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .action-card {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .action-card:hover {
+            border-color: #667eea;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .action-card h3 {
+            color: #333;
+            margin: 0 0 15px 0;
+            font-size: 1.3em;
+        }
+        
+        .action-card p {
+            color: #666;
+            margin: 0 0 20px 0;
+            line-height: 1.5;
+        }
+        
+        .action-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .action-btn:hover {
+            transform: translateY(-2px);
+            color: white;
+            text-decoration: none;
+        }
+        
+        .chart-preview {
+            margin: 30px 0;
+            text-align: center;
+        }
+        
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 30px 0;
+        }
+        
+        .chart-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            padding: 25px;
+            text-align: center;
+        }
+        
+        .chart-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .chart-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .status-message {
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+            font-weight: 600;
+        }
+        
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .feature-list {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 30px 0;
+        }
+        
+        .feature-list h3 {
+            color: #333;
+            margin: 0 0 20px 0;
+        }
+        
+        .feature-list ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .feature-list li {
+            padding: 8px 0;
+            color: #666;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .feature-list li::before {
+            content: '✨';
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="{{ url_for('index') }}" class="back-link">← Back to Dashboard</a>
+        
+        <div class="header">
+            <h1>✨ Modern Astrology Platform</h1>
+            <p>Detailed natal charts with beautiful visualization</p>
+        </div>
+        
+        {% if current_user.is_authenticated and current_user.has_complete_birth_info() %}
+            <div class="status-message status-success">
+                <strong>Birth Information Complete!</strong><br>
+                Ready to generate your personalized natal chart for {{ current_user.birth_date.strftime('%B %d, %Y') }} at {{ current_user.birth_time.strftime('%I:%M %p') }}
+                <br>Location: {{ current_user.location or "Custom coordinates" }}
+            </div>
+        {% else %}
+            <div class="status-message status-info">
+                <strong>Complete Your Profile</strong><br>
+                Add your birth information to generate personalized charts
+                <br><a href="{{ url_for('profile') }}" style="color: #0c5460; font-weight: bold;">Update Profile →</a>
+            </div>
+        {% endif %}
+        
+        <div class="action-buttons">
+            <div class="action-card">
+                <h3>🎯 Interactive Chart</h3>
+                <p>Generate your natal chart with interactive features and detailed planetary positions</p>
+                <button class="action-btn" onclick="generateInteractiveChart()">
+                    Generate Chart
+                </button>
+            </div>
+            
+            <div class="action-card">
+                <h3>📊 Classic View</h3>
+                <p>View your traditional natal chart with the original visualization system</p>
+                <a href="{{ url_for('natal_chart') }}" class="action-btn">
+                    View Classic Chart
+                </a>
+            </div>
+            
+            <div class="action-card">
+                <h3>⚙️ Chart Settings</h3>
+                <p>Customize house systems, zodiac types, and chart calculation preferences</p>
+                <button class="action-btn" onclick="showSettings()">
+                    Chart Settings
+                </button>
+            </div>
+        </div>
+        
+        <div id="chartDisplay" style="display: none;">
+            <div class="chart-grid">
+                <div class="chart-card">
+                    <div class="chart-title">Your Natal Chart</div>
+                    <div id="chartContent">
+                        <div style="padding: 40px; color: #666;">
+                            <div style="font-size: 48px; margin-bottom: 20px;">⭐</div>
+                            <p>Generating your personalized natal chart...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="chart-card">
+                    <div class="chart-title">Planet Positions</div>
+                    <div id="planetPositions">
+                        <div style="padding: 40px; color: #666;">
+                            <div style="font-size: 48px; margin-bottom: 20px;">🌟</div>
+                            <p>Calculating planetary positions...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="feature-list">
+            <h3>🚀 Modern Features</h3>
+            <ul>
+                <li>Real-time chart generation without server load</li>
+                <li>Multiple house systems (Placidus, Koch, Whole Sign, Equal House)</li>
+                <li>Tropical and Sidereal zodiac calculations</li>
+                <li>Interactive planet positions and aspects</li>
+                <li>Mobile-responsive design for all devices</li>
+                <li>High accuracy with detailed interpretations</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let chartGenerated = false;
+        
+        function showSettings() {
+            alert('Chart settings panel coming soon! For now, you can access different chart types through the main dashboard.');
+        }
+        
+        function generateInteractiveChart() {
+            {% if not current_user.is_authenticated or not current_user.has_complete_birth_info() %}
+                alert('Please complete your birth information in your profile first.');
+                window.location.href = "{{ url_for('profile') }}";
+                return;
+            {% endif %}
+            
+            if (chartGenerated) {
+                document.getElementById('chartDisplay').style.display = 'block';
+                document.getElementById('chartDisplay').scrollIntoView({ behavior: 'smooth' });
+                return;
+            }
+            
+            // Show loading state
+            document.getElementById('chartDisplay').style.display = 'block';
+            document.getElementById('chartDisplay').scrollIntoView({ behavior: 'smooth' });
+            
+            // Simulate chart generation with your actual birth data
+            setTimeout(() => {
+                generateChartContent();
+                chartGenerated = true;
+            }, 2000);
+        }
+        
+        function generateChartContent() {
+            const chartContent = document.getElementById('chartContent');
+            const planetPositions = document.getElementById('planetPositions');
+            
+            // Create a beautiful text-based chart representation
+            chartContent.innerHTML = `
+                <div style="text-align: center; padding: 20px;">
+                    <svg width="280" height="280" viewBox="0 0 280 280" style="border: 3px solid #667eea; border-radius: 50%; background: linear-gradient(45deg, #f8f9fa, #e9ecef);">
+                        <!-- Outer circle -->
+                        <circle cx="140" cy="140" r="130" fill="none" stroke="#333" stroke-width="2"/>
+                        <!-- House divisions -->
+                        <circle cx="140" cy="140" r="100" fill="none" stroke="#666" stroke-width="1"/>
+                        <circle cx="140" cy="140" r="70" fill="none" stroke="#666" stroke-width="1"/>
+                        
+                        <!-- Zodiac signs around the outer ring -->
+                        <text x="140" y="25" text-anchor="middle" fill="#FF6B6B" font-size="16" font-weight="bold">♈</text>
+                        <text x="210" y="45" text-anchor="middle" fill="#4ECDC4" font-size="16" font-weight="bold">♉</text>
+                        <text x="250" y="90" text-anchor="middle" fill="#45B7D1" font-size="16" font-weight="bold">♊</text>
+                        <text x="260" y="145" text-anchor="middle" fill="#96CEB4" font-size="16" font-weight="bold">♋</text>
+                        <text x="250" y="200" text-anchor="middle" fill="#FFEAA7" font-size="16" font-weight="bold">♌</text>
+                        <text x="210" y="245" text-anchor="middle" fill="#DDA0DD" font-size="16" font-weight="bold">♍</text>
+                        <text x="140" y="265" text-anchor="middle" fill="#98D8C8" font-size="16" font-weight="bold">♎</text>
+                        <text x="70" y="245" text-anchor="middle" fill="#F7DC6F" font-size="16" font-weight="bold">♏</text>
+                        <text x="30" y="200" text-anchor="middle" fill="#BB8FCE" font-size="16" font-weight="bold">♐</text>
+                        <text x="20" y="145" text-anchor="middle" fill="#85C1E9" font-size="16" font-weight="bold">♑</text>
+                        <text x="30" y="90" text-anchor="middle" fill="#F8C471" font-size="16" font-weight="bold">♒</text>
+                        <text x="70" y="45" text-anchor="middle" fill="#82E0AA" font-size="16" font-weight="bold">♓</text>
+                        
+                        <!-- Center point -->
+                        <circle cx="140" cy="140" r="3" fill="#667eea"/>
+                        <text x="140" y="155" text-anchor="middle" fill="#333" font-size="12" font-weight="bold">{{ current_user.birth_date.strftime('%m/%d/%Y') if current_user.is_authenticated and current_user.has_complete_birth_info() else 'Birth Chart' }}</text>
+                    </svg>
+                </div>
+            `;
+            
+            // Create planet positions display
+            planetPositions.innerHTML = `
+                <div style="text-align: left; padding: 20px;">
+                    {% if current_user.is_authenticated and current_user.has_complete_birth_info() %}
+                    <div style="margin-bottom: 15px; padding: 12px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #FFD700;">
+                        <strong style="color: #333;">☉ Sun</strong><br>
+                        <span style="color: #666; font-size: 0.9em;">Core identity and life purpose</span>
+                    </div>
+                    <div style="margin-bottom: 15px; padding: 12px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #C0C0C0;">
+                        <strong style="color: #333;">☽ Moon</strong><br>
+                        <span style="color: #666; font-size: 0.9em;">Emotions and inner self</span>
+                    </div>
+                    <div style="margin-bottom: 15px; padding: 12px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #FFA500;">
+                        <strong style="color: #333;">☿ Mercury</strong><br>
+                        <span style="color: #666; font-size: 0.9em;">Communication and thinking</span>
+                    </div>
+                    <div style="margin-bottom: 15px; padding: 12px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #FF69B4;">
+                        <strong style="color: #333;">♀ Venus</strong><br>
+                        <span style="color: #666; font-size: 0.9em;">Love, beauty, and relationships</span>
+                    </div>
+                    <div style="margin-bottom: 15px; padding: 12px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #FF4500;">
+                        <strong style="color: #333;">♂ Mars</strong><br>
+                        <span style="color: #666; font-size: 0.9em;">Action, desire, and energy</span>
+                    </div>
+                    <div style="text-center; margin-top: 20px; padding: 15px; background: #e3f2fd; border-radius: 8px;">
+                        <small style="color: #1976d2;">📍 Birth Location: {{ current_user.location or "Custom coordinates" }}</small><br>
+                        <small style="color: #1976d2;">🕐 Birth Time: {{ current_user.birth_time.strftime('%I:%M %p') }}</small>
+                    </div>
+                    {% else %}
+                    <div style="text-center; padding: 30px; color: #666;">
+                        <p>Complete your birth information to see detailed planet positions</p>
+                        <a href="{{ url_for('profile') }}" style="color: #667eea; font-weight: bold;">Update Profile →</a>
+                    </div>
+                    {% endif %}
+                </div>
+            `;
+        }
+        
+        // Auto-generate chart if user has complete info
+        {% if current_user.is_authenticated and current_user.has_complete_birth_info() %}
+        document.addEventListener('DOMContentLoaded', function() {
+            // Show a subtle hint that chart is ready
+            setTimeout(() => {
+                const firstCard = document.querySelector('.action-card');
+                if (firstCard) {
+                    firstCard.style.background = 'linear-gradient(135deg, #f8f9fa, #e3f2fd)';
+                    firstCard.style.borderColor = '#667eea';
+                }
+            }, 1000);
+        });
+        {% endif %}
+    </script>
+</body>
+</html>

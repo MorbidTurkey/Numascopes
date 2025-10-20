@@ -1,0 +1,450 @@
+{% extends "base.html" %}
+
+{% block title %}Your Natal Chart - Turkey Palm Readings{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3">
+                    <i class="fas fa-chart-pie text-primary"></i>
+                    Your Natal Chart
+                </h1>
+                <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+
+            {% if current_user.has_complete_birth_info() %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-info-circle"></i>
+                            Birth Information
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <strong>Birth Date:</strong><br>
+                                {{ moment(current_user.birth_date).format('MMMM Do, YYYY') }}
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Birth Time:</strong><br>
+                                {{ current_user.birth_time.strftime('%I:%M %p') }}
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Birth Location:</strong><br>
+                                {{ current_user.get_full_birth_location() }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {% if chart_image %}
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-pie"></i>
+                            Natal Chart Wheel
+                            <small class="text-muted">{{ accuracy_level }}</small>
+                        </h5>
+                        <div class="d-flex align-items-center">
+                            <span class="badge badge-success">Swiss Ephemeris + Placidus Houses</span>
+                            <i class="fas fa-info-circle text-muted ms-2" 
+                               data-bs-toggle="tooltip" 
+                               data-bs-placement="left"
+                               data-bs-html="true"
+                               title="<strong>Your personalized birth chart</strong> calculated with professional accuracy using NASA-grade Swiss Ephemeris data.<br><br>• <strong>Swiss Ephemeris</strong> ensures precise planetary positions<br>• <strong>Placidus system</strong> divides your sky into 12 dynamic houses based on the time and place of your birth"
+                               style="cursor: help;"></i>
+                        </div>
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="chart-container" style="max-width: 800px; margin: 0 auto;">
+                            <img src="{{ chart_image }}" 
+                                 alt="Natal Chart with Swiss Ephemeris Accuracy" 
+                                 class="img-fluid rounded shadow-lg" 
+                                 style="width: 100%; height: auto; min-height: 600px; border: 2px solid #007bff;">
+                        </div>
+                        <p class="text-muted mt-3">
+                            <i class="fas fa-info-circle"></i>
+                            Astrology chart using Swiss Ephemeris calculations with Placidus house system
+                        </p>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if chart_data %}
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0 d-flex align-items-center">
+                                    <i class="fas fa-sun"></i>
+                                    <span class="ms-2">Planetary Positions</span>
+                                    <i class="fas fa-info-circle text-muted ms-2" 
+                                       data-bs-toggle="tooltip" 
+                                       data-bs-placement="top"
+                                       data-bs-html="true"
+                                       title="<strong>Shows where each planet was at the moment you were born</strong> — its zodiac sign, house placement, and exact degree. Each describes a different part of your personality and life focus.<br><br>• <strong>Sign:</strong> the zodiac energy influencing that planet<br>• <strong>House:</strong> the area of life it influences (e.g., career, home, relationships)<br>• <strong>Degree:</strong> the planet's exact position within its sign"
+                                       style="cursor: help; font-size: 0.8rem;"></i>
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Planet</th>
+                                                <th>Sign</th>
+                                                <th>House</th>
+                                                <th>Degree</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for planet, data in chart_data.planets.items() %}
+                                            <tr>
+                                                <td>
+                                                    <strong>{{ planet.title() }}</strong>
+                                                    {% if data.get('retrograde') %}
+                                                        <span class="text-warning" title="Retrograde">℞</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>{{ data.get('sign', 'Unknown') }}</td>
+                                                <td>{{ data.get('house', 'Unknown') }}</td>
+                                                <td>
+                                                    {% if data.get('position_in_sign_dms') %}
+                                                        {{ data.get('position_in_sign_dms') }}
+                                                    {% else %}
+                                                        {{ "%.1f"|format(data.get('position_in_sign', 0)) }}°
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0 d-flex align-items-center">
+                                    <i class="fas fa-home"></i>
+                                    <span class="ms-2">House System</span>
+                                    <i class="fas fa-info-circle text-muted ms-2" 
+                                       data-bs-toggle="tooltip" 
+                                       data-bs-placement="top"
+                                       data-bs-html="true"
+                                       title="<strong>Each house begins at a cusp</strong> — the starting degree where a new life domain begins (e.g., self, values, communication, home, etc.).<br><br><strong>House meanings:</strong><br>• 1st = identity • 2nd = values • 3rd = communication<br>• 4th = home • 5th = creativity • 6th = health<br>• 7th = partnerships • 8th = transformation<br>• 9th = philosophy • 10th = career<br>• 11th = friendships • 12th = spirituality"
+                                       style="cursor: help; font-size: 0.8rem;"></i>
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>House</th>
+                                                <th>Sign</th>
+                                                <th>Cusp</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for house_num in range(1, 13) %}
+                                            {% set house_key = "house_" ~ house_num %}
+                                            {% if chart_data.houses[house_key] %}
+                                            {% set house = chart_data.houses[house_key] %}
+                                            <tr>
+                                                <td><strong>{{ house_num }}</strong></td>
+                                                <td>{{ house.sign if house.sign else 'N/A' }}</td>
+                                                <td>
+                                                    {% if house.cusp_dms %}
+                                                        {{ house.cusp_dms }}
+                                                    {% elif house.cusp %}
+                                                        {{ "%.1f"|format(house.cusp) }}°
+                                                    {% else %}
+                                                        N/A
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                            {% endif %}
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0 d-flex align-items-center">
+                            <i class="fas fa-star"></i>
+                            <span class="ms-2">Your Signs</span>
+                            <i class="fas fa-info-circle text-muted ms-2" 
+                               data-bs-toggle="tooltip" 
+                               data-bs-placement="top"
+                               data-bs-html="true"
+                               title="<strong>Your three core signs</strong> reveal how you express yourself, feel emotions, and approach life overall.<br><br>• <strong>Sun Sign:</strong> Your core identity and sense of purpose<br>• <strong>Moon Sign:</strong> Your emotional world and instinctive reactions<br>• <strong>Rising Sign:</strong> The outward style and first impression you give others"
+                               style="cursor: help; font-size: 0.8rem;"></i>
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="text-center mb-3">
+                                    <i class="fas fa-sun fa-2x text-warning mb-2"></i>
+                                    <h6>Sun Sign</h6>
+                                    <span class="badge bg-warning text-dark fs-6">{{ chart_data.planets['Sun'].get('sign', 'Unknown') }}</span>
+                                </div>
+                                {% if chart_data.sign_summaries %}
+                                <div class="text-start">
+                                    <small class="text-muted">
+                                        <strong>{{ chart_data.planets['Sun'].get('sign', 'Unknown') }} Sun:</strong> 
+                                        {{ chart_data.sign_summaries.sun }}
+                                    </small>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-center mb-3">
+                                    <i class="fas fa-moon fa-2x text-info mb-2"></i>
+                                    <h6>Moon Sign</h6>
+                                    <span class="badge bg-info fs-6">{{ chart_data.planets['Moon'].get('sign', 'Unknown') }}</span>
+                                </div>
+                                {% if chart_data.sign_summaries %}
+                                <div class="text-start">
+                                    <small class="text-muted">
+                                        <strong>{{ chart_data.planets['Moon'].get('sign', 'Unknown') }} Moon:</strong> 
+                                        {{ chart_data.sign_summaries.moon }}
+                                    </small>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-center mb-3">
+                                    <i class="fas fa-arrow-up fa-2x text-success mb-2"></i>
+                                    <h6>Rising Sign</h6>
+                                    {% if chart_data.houses.get('house_1') and chart_data.houses.get('house_1').get('sign') %}
+                                        <span class="badge bg-success fs-6">{{ chart_data.houses.get('house_1').get('sign') }}</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary fs-6">Calculating...</span>
+                                    {% endif %}
+                                </div>
+                                {% if chart_data.sign_summaries %}
+                                <div class="text-start">
+                                    <small class="text-muted">
+                                        {% if chart_data.houses.house_1 and chart_data.houses.house_1.sign %}
+                                            <strong>{{ chart_data.houses.house_1.sign }} Rising:</strong> 
+                                            {{ chart_data.sign_summaries.rising }}
+                                        {% else %}
+                                            <strong>Rising Sign:</strong> {{ chart_data.sign_summaries.rising }}
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- New Comprehensive Data Sections -->
+                {% if chart_data.angles %}
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0 d-flex align-items-center">
+                                    <i class="fas fa-compass"></i>
+                                    <span class="ms-2">Angular Points</span>
+                                    <i class="fas fa-info-circle text-muted ms-2" 
+                                       data-bs-toggle="tooltip" 
+                                       data-bs-placement="top"
+                                       data-bs-html="true"
+                                       title="<strong>The four major angles of your chart</strong> — Ascendant, Descendant, Midheaven, and Imum Coeli — represent the key axes of identity, relationships, career, and home.<br><br>• <strong>Ascendant:</strong> your self-image and approach to life<br>• <strong>Descendant:</strong> your approach to partnerships<br>• <strong>Midheaven (MC):</strong> your public role and ambitions<br>• <strong>Imum Coeli (IC):</strong> your inner roots and private life"
+                                       style="cursor: help; font-size: 0.8rem;"></i>
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Angle</th>
+                                                <th>Sign</th>
+                                                <th>Position</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for angle, data in chart_data.angles.items() %}
+                                            <tr>
+                                                <td><strong>{{ angle.title().replace('_', ' ') }}</strong></td>
+                                                <td>{{ data.sign }}</td>
+                                                <td>
+                                                    {% if data.position_in_sign_dms %}
+                                                        {{ data.position_in_sign_dms }}
+                                                    {% else %}
+                                                        {{ "%.1f"|format(data.position_in_sign) }}°
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if chart_data.additional_points %}
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0 d-flex align-items-center">
+                                    <i class="fas fa-asterisk"></i>
+                                    <span class="ms-2">Additional Points</span>
+                                    <i class="fas fa-info-circle text-muted ms-2" 
+                                       data-bs-toggle="tooltip" 
+                                       data-bs-placement="top"
+                                       data-bs-html="true"
+                                       title="<strong>Secondary bodies and mathematical points</strong> that add depth — Chiron for healing, Lilith for shadow themes, and the Nodes for karmic direction.<br><br>• <strong>Chiron:</strong> your 'wounded healer' theme — where you both struggle and help others heal<br>• <strong>Lilith:</strong> raw independence and inner rebellion<br>• <strong>North/South Nodes:</strong> life path evolution and past patterns"
+                                       style="cursor: help; font-size: 0.8rem;"></i>
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Point</th>
+                                                <th>Sign</th>
+                                                <th>Position</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for point, data in chart_data.additional_points.items() %}
+                                            <tr>
+                                                <td>
+                                                    <strong>{{ point.title().replace('_', ' ') }}</strong>
+                                                    {% if data.retrograde %}
+                                                        <span class="text-warning" title="Retrograde">℞</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>{{ data.sign }}</td>
+                                                <td>
+                                                    {% if data.position_in_sign_dms %}
+                                                        {{ data.position_in_sign_dms }}
+                                                    {% else %}
+                                                        {{ "%.1f"|format(data.position_in_sign) }}°
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                {% if chart_data.chart_metadata %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-info-circle"></i>
+                            Chart Metadata
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <strong>House System:</strong><br>
+                                {{ chart_data.chart_metadata.house_system }}
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Zodiac Type:</strong><br>
+                                {{ chart_data.chart_metadata.zodiac_type }}
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Perspective:</strong><br>
+                                {{ chart_data.chart_metadata.perspective_type }}
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Calculation Date:</strong><br>
+                                {{ chart_data.chart_metadata.calculation_date }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if chart_data.lunar_phase %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-moon"></i>
+                            Lunar Phase at Birth
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Phase:</strong> {{ chart_data.lunar_phase.phase_name }}</p>
+                                <p><strong>Degree Separation:</strong> {{ "%.1f"|format(chart_data.lunar_phase.degrees_between_s_m) }}°</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Sun Sign:</strong> {{ chart_data.lunar_phase.sun_phase.sign }}</p>
+                                <p><strong>Moon Sign:</strong> {{ chart_data.lunar_phase.moon_phase.sign }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+            {% else %}
+                <div class="card">
+                    <div class="card-body text-center">
+                        <div class="py-5">
+                            <i class="fas fa-chart-pie fa-3x text-muted mb-3"></i>
+                            <h4>Complete Your Birth Information</h4>
+                            <p class="text-muted mb-4">
+                                To generate your natal chart, we need your complete birth information including date, time, and location.
+                            </p>
+                            <a href="{{ url_for('profile') }}" class="btn btn-primary">
+                                <i class="fas fa-user-edit"></i> Update Profile
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Bootstrap tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl, {
+            html: true,
+            delay: { show: 500, hide: 100 }
+        });
+    });
+    
+    // Add any chart-specific JavaScript here
+    console.log('Natal chart page loaded with tooltips initialized');
+});
+</script>
+{% endblock %}
