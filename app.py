@@ -10,8 +10,24 @@ from ai_integration import AIHoroscopeGenerator
 from datetime import datetime, date, time
 import os
 
-app = Flask(__name__)
+import os
+
+# Vercel/Serverless fix — only /tmp is writable
+TMP_DIR = "/tmp"
+INSTANCE_PATH = os.path.join(TMP_DIR, "instance")
+os.makedirs(INSTANCE_PATH, exist_ok=True)
+
+# Use /tmp for instance_path (avoids read-only FS errors)
+app = Flask(__name__, instance_path=INSTANCE_PATH)
+
+# Load config
 app.config.from_object(Config)
+
+# 🧯 SQLAlchemy safety — if SQLite is used, redirect it to /tmp
+uri = app.config.get("SQLALCHEMY_DATABASE_URI", "")
+if uri.startswith("sqlite:///"):
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////tmp/app.db"
+
 
 # Initialize extensions
 db.init_app(app)
