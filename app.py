@@ -9,28 +9,60 @@ from enhanced_calculator import EnhancedProfessionalCalculator  # Enhanced ★�
 from ai_integration import AIHoroscopeGenerator
 from datetime import datetime, date, time
 import os
+from flask import Flask
 
-import os
-
-# Vercel/Serverless fix — only /tmp is writable
+# ✅ Vercel/Serverless — only /tmp is writable
 TMP_DIR = "/tmp"
 INSTANCE_PATH = os.path.join(TMP_DIR, "instance")
 os.makedirs(INSTANCE_PATH, exist_ok=True)
 
-# Use /tmp for instance_path (avoids read-only FS errors)
 app = Flask(__name__, instance_path=INSTANCE_PATH)
-
-# Load config
 app.config.from_object(Config)
 
-# 🧯 SQLAlchemy safety — if SQLite is used, redirect it to /tmp
+# 🧯 If SQLite is used (now or later), force it into /tmp
 uri = app.config.get("SQLALCHEMY_DATABASE_URI", "")
-if uri.startswith("sqlite:///"):
+if not uri:
+    # default to a local file in /tmp if nothing provided
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////tmp/app.db"
+elif uri.startswith("sqlite:///"):
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////tmp/app.db"
+
+# optional, but recommended
+app.config.setdefault("SQLALCHEMY_TRACK_MODIFICATIONS", False)
 
 
 # Initialize extensions
+from sqlalchemy import inspect, text
+
 db.init_app(app)
+
+# Create tables on cold start if they don't exist.
+# Runs once per cold start, then bypassed.
+_DB_READY = {"once": False}
+
+def _ensure_db_ready():
+    if _DB_READY["once"]:
+        return
+    try:
+        with app.app_context():
+            # Ensure we can connect
+            db.session.execute(text("SELECT 1"))
+
+            # Create tables if missing
+            insp = inspect(db.engine)
+            # Check for *one* expected table (adjust name if your User table differs)
+            if not insp.has_table("user") and not insp.has_table("users"):
+                db.create_all()
+        _DB_READY["once"] = True
+    except Exception as e:
+        # Don’t crash the app; log and continue (you’ll see details in Vercel Function logs)
+        print(f"[DB bootstrap] Skipped or failed: {e}")
+
+# Ensure before *any* request (more reliable than before_first_request in serverless)
+@app.before_request
+def _bootstrap_db_once():
+    _ensure_db_ready()
+
 csrf = CSRFProtect(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
