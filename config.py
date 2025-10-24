@@ -5,7 +5,17 @@ load_dotenv()
 
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///horoscope.db'
+    
+    # For Vercel: Use DATABASE_URL if provided, otherwise fallback to SQLite (local dev only)
+    database_url = os.environ.get('DATABASE_URL')
+    if database_url:
+        # Vercel Postgres URLs might start with postgres://, update to postgresql://
+        if database_url.startswith('postgres://'):
+            database_url = database_url.replace('postgres://', 'postgresql://', 1)
+    else:
+        database_url = 'sqlite:///horoscope.db'
+    
+    SQLALCHEMY_DATABASE_URI = database_url
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
     
