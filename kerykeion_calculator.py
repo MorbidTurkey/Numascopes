@@ -25,7 +25,7 @@ except ImportError:
     PROFESSIONAL_CALC_AVAILABLE = False
 
 # Ultimate fallback
-from astrology_simple import AstrologyCalculator as SimpleCalculator
+from astrology import AstrologyCalculator as SimpleCalculator
 
 class KerykeionAstrologyCalculator:
     """
