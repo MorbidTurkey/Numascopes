@@ -1,7 +1,5 @@
-"""
-Vercel serverless function entry point for Flask app
-"""
+# api/index.py - Vercel serverless function entry point
 from app import app
 
-# Vercel looks for a variable named 'app' or a function named 'handler'
-# Since we already have 'app' from Flask, we're good to go
+# Vercel will look for the 'app' variable here
+# This imports the Flask instance from your main app.py file
