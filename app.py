@@ -1,3 +1,6 @@
+# -----------------------------
+# 🔹 1. Imports
+# -----------------------------
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_wtf.csrf import CSRFProtect
@@ -9,9 +12,25 @@ from enhanced_calculator import EnhancedProfessionalCalculator  # Enhanced ★�
 from ai_integration import AIHoroscopeGenerator
 from datetime import datetime, date, time
 import os
-from flask import Flask
 
-# ✅ Vercel/Serverless — only /tmp is writable
+# -----------------------------
+# 🔹 2. Environment Fixes (MUST be before app or any kerykeion imports)
+# -----------------------------
+# Writable directories for serverless (Vercel)
+os.environ.setdefault("MPLCONFIGDIR", "/tmp/mpl")
+os.makedirs("/tmp/mpl", exist_ok=True)
+
+# Kerykeion / requests-cache / Swiss Ephemeris safe dirs
+os.environ.setdefault("KERYKEION_CACHE_DIR", "/tmp/kerykeion_cache")
+os.environ.setdefault("KR_CACHE_DIR", "/tmp/kerykeion_cache")
+os.makedirs("/tmp/kerykeion_cache", exist_ok=True)
+
+os.environ.setdefault("HOME", "/tmp")  # fallback for ~/.kerykeion
+os.environ.setdefault("SE_EPHE_PATH", "/tmp")  # Swiss Ephemeris path
+
+# -----------------------------
+# 🔹 3. Flask App Initialization
+# -----------------------------
 TMP_DIR = "/tmp"
 INSTANCE_PATH = os.path.join(TMP_DIR, "instance")
 os.makedirs(INSTANCE_PATH, exist_ok=True)
@@ -19,25 +38,24 @@ os.makedirs(INSTANCE_PATH, exist_ok=True)
 app = Flask(__name__, instance_path=INSTANCE_PATH)
 app.config.from_object(Config)
 
-# 🧯 If SQLite is used (now or later), force it into /tmp
+# -----------------------------
+# 🔹 4. SQLAlchemy Safety
+# -----------------------------
 uri = app.config.get("SQLALCHEMY_DATABASE_URI", "")
 if not uri:
-    # default to a local file in /tmp if nothing provided
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////tmp/app.db"
 elif uri.startswith("sqlite:///"):
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////tmp/app.db"
 
-# optional, but recommended
 app.config.setdefault("SQLALCHEMY_TRACK_MODIFICATIONS", False)
 
-
-# Initialize extensions
+# -----------------------------
+# 🔹 5. Initialize DB + Lazy Bootstrap
+# -----------------------------
 from sqlalchemy import inspect, text
 
 db.init_app(app)
 
-# Create tables on cold start if they don't exist.
-# Runs once per cold start, then bypassed.
 _DB_READY = {"once": False}
 
 def _ensure_db_ready():
@@ -45,30 +63,29 @@ def _ensure_db_ready():
         return
     try:
         with app.app_context():
-            # Ensure we can connect
             db.session.execute(text("SELECT 1"))
-
-            # Create tables if missing
             insp = inspect(db.engine)
-            # Check for *one* expected table (adjust name if your User table differs)
             if not insp.has_table("user") and not insp.has_table("users"):
                 db.create_all()
         _DB_READY["once"] = True
     except Exception as e:
-        # Don’t crash the app; log and continue (you’ll see details in Vercel Function logs)
         print(f"[DB bootstrap] Skipped or failed: {e}")
 
-# Ensure before *any* request (more reliable than before_first_request in serverless)
 @app.before_request
 def _bootstrap_db_once():
     _ensure_db_ready()
 
+# -----------------------------
+# 🔹 6. Other Flask Extensions
+# -----------------------------
 csrf = CSRFProtect(app)
-login_manager = LoginManager()
-login_manager.init_app(app)
+login_manager = LoginManager(app)
 login_manager.login_view = 'auth.login'
 
-# Register blueprints
+# -----------------------------
+# 🔹 7. Blueprints / Routes
+# -----------------------------
+
 app.register_blueprint(auth_bp, url_prefix='/auth')
 
 # Make csrf_token available to all templates
