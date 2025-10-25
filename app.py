@@ -1,6 +1,3 @@
-# -----------------------------
-# 🔹 1. Imports
-# -----------------------------
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_wtf.csrf import CSRFProtect
@@ -13,47 +10,45 @@ from ai_integration import AIHoroscopeGenerator
 from datetime import datetime, date, time
 import os
 
-# -----------------------------
-# 🔹 2. Environment Fixes (MUST be before app or any kerykeion imports)
-# -----------------------------
-# Writable directories for serverless (Vercel)
-os.environ.setdefault("MPLCONFIGDIR", "/tmp/mpl")
-os.makedirs("/tmp/mpl", exist_ok=True)
-
-# Kerykeion / requests-cache / Swiss Ephemeris safe dirs
-os.environ.setdefault("KERYKEION_CACHE_DIR", "/tmp/kerykeion_cache")
-os.environ.setdefault("KR_CACHE_DIR", "/tmp/kerykeion_cache")
-os.makedirs("/tmp/kerykeion_cache", exist_ok=True)
-
-os.environ.setdefault("HOME", "/tmp")  # fallback for ~/.kerykeion
-os.environ.setdefault("SE_EPHE_PATH", "/tmp")  # Swiss Ephemeris path
-
-# -----------------------------
-# 🔹 3. Flask App Initialization
-# -----------------------------
+# ✅ Writable directories for serverless (Vercel)
 TMP_DIR = "/tmp"
 INSTANCE_PATH = os.path.join(TMP_DIR, "instance")
 os.makedirs(INSTANCE_PATH, exist_ok=True)
 
+# ✅ Flask app init
 app = Flask(__name__, instance_path=INSTANCE_PATH)
 app.config.from_object(Config)
 
-# -----------------------------
-# 🔹 4. SQLAlchemy Safety
-# -----------------------------
-uri = app.config.get("SQLALCHEMY_DATABASE_URI", "")
-if not uri:
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////tmp/app.db"
-elif uri.startswith("sqlite:///"):
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////tmp/app.db"
+# ✅ --- Add stable SECRET_KEYs for sessions and CSRF ---
+app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-secret-change-me")
+app.config["WTF_CSRF_SECRET_KEY"] = os.getenv("WTF_CSRF_SECRET_KEY", app.config["SECRET_KEY"])
 
+# ✅ --- Secure, consistent session cookies ---
+app.config.update(
+    SESSION_COOKIE_SECURE=True,           # Always secure (HTTPS on Vercel)
+    REMEMBER_COOKIE_SECURE=True,
+    SESSION_COOKIE_SAMESITE="Lax",        # Safer default (or "None" if embedded cross-site)
+    REMEMBER_COOKIE_SAMESITE="Lax",
+    PERMANENT_SESSION_LIFETIME=60 * 60 * 24 * 7  # 7 days (persistent login)
+)
+
+# ✅ --- Database config ---
+# Prefer persistent DB if provided (e.g. Neon, Supabase, PlanetScale)
+db_url = os.getenv("DATABASE_URL")
+
+if db_url:
+    app.config["SQLALCHEMY_DATABASE_URI"] = db_url
+else:
+    uri = app.config.get("SQLALCHEMY_DATABASE_URI", "")
+    if not uri or uri.startswith("sqlite:///"):
+        # fallback to /tmp only if no real DB is provided
+        app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////tmp/app.db"
+
+# optional but recommended
 app.config.setdefault("SQLALCHEMY_TRACK_MODIFICATIONS", False)
 
-# -----------------------------
-# 🔹 5. Initialize DB + Lazy Bootstrap
-# -----------------------------
+# ✅ Initialize database
 from sqlalchemy import inspect, text
-
 db.init_app(app)
 
 _DB_READY = {"once": False}
@@ -75,18 +70,19 @@ def _ensure_db_ready():
 def _bootstrap_db_once():
     _ensure_db_ready()
 
-# -----------------------------
-# 🔹 6. Other Flask Extensions
-# -----------------------------
+# ✅ CSRF and LoginManager setup
 csrf = CSRFProtect(app)
-login_manager = LoginManager(app)
+login_manager = LoginManager()
+login_manager.init_app(app)
 login_manager.login_view = 'auth.login'
 
-# -----------------------------
-# 🔹 7. Blueprints / Routes
-# -----------------------------
-
+# ✅ Blueprint registration
 app.register_blueprint(auth_bp, url_prefix='/auth')
+
+# ✅ Optional: user_loader (make sure this exists)
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 # Make csrf_token available to all templates
 @app.context_processor
